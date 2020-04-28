@@ -1,10 +1,6 @@
 [
-    {
+  { 
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "Udagram"
-    },
-    {
-        "ParameterKey": "Scope",
-        "ParameterValue": "UdacityCloudDevopsEngineerNanodegree"
+        "ParameterValue": "UdagramApp"
     }
 ]

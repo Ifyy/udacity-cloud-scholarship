@@ -1,26 +1,14 @@
 [
     {
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "Udagram"
+        "ParameterValue": "UdagramApp"
     },
     {
-        "ParameterKey": "BastionKeyName",
-        "ParameterValue": "UdagramBastionKey"
+        "ParameterKey": "JumpBoxKey",
+        "ParameterValue": "UdagramJumpBoxKey"
     },
     {
         "ParameterKey": "WebAppKeyName",
-        "ParameterValue": "UdagramWebAppKey"
-    },
-    {
-        "ParameterKey": "Scope",
-        "ParameterValue": "UdacityCloudDevopsEngineerNanodegree"
-    },
-    {
-        "ParameterKey": "SNSTopicSubscriptionEndpoint",
-        "ParameterValue": "solozyokwa@gmail.com"
-    },
-    {
-        "ParameterKey": "SNSTopicSubscriptionProtocol",
-        "ParameterValue": "email"
+        "ParameterValue": "WebAppKey"
     }
 ]

@@ -1,14 +1,17 @@
-AWSTemplateFormatVersion: 2010-09-09
+
+   AWSTemplateFormatVersion: 2010-09-09
 
 Description: >-
-  This template deploys the web servers, load balancer, security groups,
+  Ifeoma Udagram Project: This template deploys the web servers, security groups, load balancer
   autoscaling group and launch config for the web app.
+
 Parameters:
+
   EnvironmentName:
-    Description: A name that will be prefixed to resource names.
+    Description: An environment name that will be prefixed to resource names.
     Type: String
 
-  BastionKeyName:
+  JumpBoxKey:
     Description: Bastion host key pair name
     Type: String
 
@@ -16,27 +19,11 @@ Parameters:
     Description: Web servers key pair name
     Type: String
 
-  Scope:
-    Description: Scope which resources belong to
-    Type: String
-
-  SNSTopicName:
-    Description: AWS SNS Topic name to use for cpu high alarm
-    Type: String
-
-  SNSTopicSubscriptionEndpoint:
-    Description: AWS SNS topic subscription endpoint
-    Type: String
-
-  SNSTopicSubscriptionProtocol:
-    Description: AWS SNS topic subscription protocol
-    Type: String
-
 Resources:
-  BastionSecGroup:
+  JumpBoxSecGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: Enables SSH Access to the Bastion Host
+      GroupDescription: Enables SSH Access to the JumpBox Host
       VpcId:
         Fn::ImportValue: !Sub ${EnvironmentName}-VPCID
       SecurityGroupIngress:
@@ -44,41 +31,28 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
 
-  BastionHost:
+  JumpBoxHost:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-0ed2df11a6d41ea78
       InstanceType: t2.micro
       AvailabilityZone: !Select [0, !GetAZs ""]
-      KeyName: !Ref BastionKeyName
+      KeyName: !Ref JumpBoxKey
       SubnetId:
         Fn::ImportValue: !Sub ${EnvironmentName}-PUB1-SN
       SecurityGroupIds:
-        - !Ref BastionSecGroup
+        - !Ref JumpBoxSecGroup
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
           Ebs:
             VolumeSize: "10"
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
 
-  BastionEIP:
+  JumpBoxEIP:
     Type: "AWS::EC2::EIP"
     Properties:
       Domain: vpc
-      InstanceId: !Ref BastionHost
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
+      InstanceId: !Ref JumpBoxHost
 
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -99,8 +73,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref EnvironmentName
-        - Key: Scope
-          Value: !Ref Scope
 
   WebAppSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -122,16 +94,12 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
 
-  #instance profile contains the IAM Role name(s) that we want to associate to our auto scaling EC2 Servers
   ProfileWithRolesForOurApp:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - UdacityS3ReadOnlyEC2
+        - S3ReadOnlyEC2
 
   WebAppLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -147,8 +115,8 @@ Resources:
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
       IamInstanceProfile: !Ref ProfileWithRolesForOurApp
-      ImageId: ami-0ed2df11a6d41ea78
-      # KeyName: !Ref WebAppKeyName
+      ImageId: ami-0a95885959e5a200b
+      KeyName: !Ref WebAppKeyName
       SecurityGroups:
         - !Ref WebAppSecGroup
       InstanceType: t3.medium
@@ -168,15 +136,6 @@ Resources:
       MaxSize: "4"
       TargetGroupARNs:
         - !Ref WebAppTargetGroup
-      MetricsCollection:
-        - Granularity: "1Minute"
-          Metrics:
-            - "GroupMinSize"
-            - "GroupMaxSize"
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
-          PropagateAtLaunch: true
 
   WebAppLB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -186,10 +145,7 @@ Resources:
         - Fn::ImportValue: !Sub ${EnvironmentName}-PUB2-SN
       SecurityGroups:
         - !Ref LBSecGroup
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
-
+      
   Listener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -225,42 +181,16 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${EnvironmentName}-VPCID
-      Tags:
-        - Key: Scope
-          Value: !Ref Scope
-
-  CPUAlarmHighSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: HighCPUUtilizationAlarmTopic
-      Subscription:
-        - Endpoint: !Ref SNSTopicSubscriptionEndpoint
-          Protocol: !Ref SNSTopicSubscriptionProtocol
-
-  CPUAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Notify me if CPU utilization is greater than 90% for 10 minute
-      AlarmActions:
-        - !Ref CPUAlarmHighSNSTopic
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 90
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref WebAppAutoScalingGroup
+      
 
 Outputs:
+
   WebAppURL:
-    Description: URL to access the web app
+    Description: URL to access the Udagram app
     Value:
       Fn::Sub:
         - "http://${LBDnsName}"
         - LBDnsName: !GetAtt WebAppLB.DNSName
-  BastionEIP:
-    Description: Elastic IP for Bastion
-    Value: !Ref BastionEIP
+  JumpBoxEIP:
+    Description: Elastic IP for JumpBox
+    Value: !Ref JumpBoxEIP

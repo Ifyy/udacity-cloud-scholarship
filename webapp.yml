@@ -1,5 +1,5 @@
 
-   AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: 2010-09-09
 
 Description: >-
   Ifeoma Udagram Project: This template deploys the web servers, security groups, load balancer
